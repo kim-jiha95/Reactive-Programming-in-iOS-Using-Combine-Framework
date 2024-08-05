@@ -55,6 +55,8 @@ innerPublisher1.send(10)
 
 outerPublisher.send(AnyPublisher(innerPublisher2))
 innerPublisher2.send(20)
+// 1은 받지 않음, line 56때문에
+//innerPublisher1.send(100)
 innerPublisher2.send(100)
 
 class ContentViewModel: ObservableObject {
