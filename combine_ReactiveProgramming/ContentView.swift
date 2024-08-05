@@ -8,42 +8,42 @@
 import SwiftUI
 import Combine
 
-// filter
 /*
-let numbersPublisher = (1...10).publisher
+let numbersPublisher = (1...5).publisher
 
-let evenNumberPublisher = numbersPublisher.filter { $0 % 2 == 0}
+let squaredPublisher = numbersPublisher.map { "Item# \($0)" }
 
-let cancellable = evenNumberPublisher.sink { value in
+let cancellable = squaredPublisher.sink { value in
     print(value)
 } */
 
-// compactMap
+// flatMap
+
 /*
-let stringsPublisher = ["1", "2", "3", "4", "A"].publisher
+let namePublisher = ["John", "Mary", "Steven"].publisher
 
-let numbersPublisher = stringsPublisher.compactMap { Int($0) }
-
-let cancellable = numbersPublisher.sink { value in
-    print(value)
-} */
-
-// debounce
-
-let textPublisher = PassthroughSubject<String, Never>()
-
-let debouncedPublisher = textPublisher.debounce(for: .seconds(0.5), scheduler: DispatchQueue.main)
-
-let cancellable = debouncedPublisher.sink { value in
-    print(value)
+let flattedNamePublisher = namePublisher.flatMap { name in
+    name.publisher
 }
 
-textPublisher.send("A")
-textPublisher.send("B")
-textPublisher.send("C")
-textPublisher.send("D")
-textPublisher.send("E")
-textPublisher.send("F")
+let cancellable = flattedNamePublisher
+    .sink { char in
+        print(char)
+    }
+ 
+ */
+
+// merge
+
+let publisher1 = [1,2,3].publisher
+let publisher2 = [4,5,6].publisher
+let publisher3 = ["A", "B"].publisher
+
+let mergedPublisher = Publishers.Merge(publisher1, publisher2)
+
+let cancellable = mergedPublisher.sink { value in
+    print(value)
+}
 
 class ContentViewModel: ObservableObject {
     
