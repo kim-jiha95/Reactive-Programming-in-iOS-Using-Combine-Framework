@@ -8,56 +8,100 @@
 import SwiftUI
 import Combine
 
-// combineLatest
 /*
-let publisher1 = CurrentValueSubject<Int, Never>(1)
-let publisher2 = CurrentValueSubject<String, Never>("Hello World")
+let numbersPublisher = [1,2,3,4,5,6].publisher
 
-let combinedPublisher = publisher1.combineLatest(publisher2)
+let transformedPublisher = numbersPublisher
+    .tryMap { value in
+        if value == 3 {
+            throw SampleError.operationFailed
+        }
+        
+        return value
+    }.catch { error in
+        print(error)
+        return Just(0)
+    }
 
-let cancellable = combinedPublisher.sink { value1, value2 in
-    print("Value 1: \(value1), Value 2: \(value2)")
-}
-
-publisher1.send(3)
-publisher2.send("Introduction to Combine")
- */
-
-// zip
-/*
-let publisher1 = [1,2,3,4].publisher
-let publisher2 = ["A", "B", "C", "D", "E"].publisher
-let publisher3 = ["John", "Doe", "Mary", "Steven"].publisher
-
-//let zippedPublisher = publisher1.zip(publisher2)
-
-let zippedPublisher = Publishers.Zip3(publisher1, publisher2, publisher3)
-
-let cancellable = zippedPublisher.sink { value in
-    print("\(value.0), \(value.1), \(value.2)")
+transformedPublisher.sink { value in
+    print(value)
 } */
 
 
-// switchToLatest
+// replaceError with single value
 
-let outerPublisher = PassthroughSubject<AnyPublisher<Int, Never>, Never>()
-let innerPublisher1 = CurrentValueSubject<Int, Never>(1)
-let innerPublisher2 = CurrentValueSubject<Int, Never>(2)
+/*
+let numbersPublisher = [1,2,3,4,5,6].publisher
 
-let cancellable = outerPublisher
-    .switchToLatest()
-    .sink { value in
+let transformedPublisher = numbersPublisher
+    .tryMap { value in
+        if value == 3 {
+            throw SampleError.operationFailed
+        }
+        
+        return value * 2
+    }.replaceError(with: -1)
+
+
+let cancellable = transformedPublisher.sink { value in
+    print(value)
+}
+*/
+
+// replaceError with another publisher
+
+/*
+let numbersPublisher = [1,2,3,4,5,6].publisher
+
+let fallbackPublisher = Just(-1)
+
+let transformedPublisher = numbersPublisher
+    .tryMap { value in
+        if value == 3 {
+            throw SampleError.operationFailed
+        }
+        return Just(value * 2)
+}.replaceError(with: fallbackPublisher)
+
+let cancellable = transformedPublisher.sink { publisher in
+    let _ = publisher.sink { value in
         print(value)
+    }
+} */
+
+// retry
+
+let publisher = PassthroughSubject<Int, Error>()
+
+let retriedPublisher = publisher
+    .tryMap { value in
+        if value == 3 {
+            throw SampleError.operationFailed
+        }
+        return value
+    }.retry(2)
+
+let cancellable = retriedPublisher.sink { completion in
+    switch completion {
+        case .finished:
+            print("Pubisher has completed.")
+        case .failure(let error):
+            print("Publisher failed with error \(error)")
+    }
+} receiveValue: { value in
+    print(value)
 }
 
-outerPublisher.send(AnyPublisher(innerPublisher1))
-innerPublisher1.send(10)
-
-outerPublisher.send(AnyPublisher(innerPublisher2))
-innerPublisher2.send(20)
-// 1은 받지 않음, line 56때문에
-//innerPublisher1.send(100)
-innerPublisher2.send(100)
+publisher.send(1)
+publisher.send(2)
+publisher.send(3) // failed
+publisher.send(4)
+publisher.send(5)
+publisher.send(3) // failed
+publisher.send(6)
+publisher.send(7)
+publisher.send(3) // failed
+publisher.send(8)
 
 class ContentViewModel: ObservableObject {
     
