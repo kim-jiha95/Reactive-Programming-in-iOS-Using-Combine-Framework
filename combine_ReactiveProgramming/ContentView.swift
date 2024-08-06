@@ -15,13 +15,26 @@ struct Post: Codable {
     let body: String
 }
 
+enum NetworkError: Error {
+    case badServerResponse
+}
+
 func fetchPosts() -> AnyPublisher<[Post], Error> {
     
     let url = URL(string: "https://jsonplaceholder.typicode.com/posts")!
     
     return URLSession.shared.dataTaskPublisher(for: url)
-        .map(\.data)
+        .tryMap { data, response in
+            print("retries")
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                throw NetworkError.badServerResponse
+            }
+            
+            return data
+        }
         .decode(type: [Post].self, decoder: JSONDecoder())
+        .retry(3)
         .receive(on: DispatchQueue.main)
         .eraseToAnyPublisher()
 }
