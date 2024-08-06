@@ -8,49 +8,37 @@
 import SwiftUI
 import Combine
 
-struct Post: Codable {
-    let userId: Int
-    let id: Int
+struct MovieResponse: Decodable {
+    let Search: [Movie]
+}
+
+struct Movie: Decodable {
     let title: String
-    let body: String
+    
+    private enum CodingKeys: String, CodingKey {
+        case title = "Title"
+    }
 }
 
-enum NetworkError: Error {
-    case badServerResponse
-}
-
-func fetchPosts() -> AnyPublisher<[Post], Error> {
+func fetchMovies(_ searchTerm: String) -> AnyPublisher<MovieResponse, Error> {
     
-    let url = URL(string: "https://jsonplaceholder.typicode.com/posts")!
+    let url = URL(string: "https://www.omdbapi.com/?s=\(searchTerm)&page=2&apiKey=564727fa")!
     
-    return URLSession.shared.dataTaskPublisher(for: url)
-        .tryMap { data, response in
-            print("retries")
-            guard let httpResponse = response as? HTTPURLResponse,
-                  httpResponse.statusCode == 200 else {
-                throw NetworkError.badServerResponse
-            }
-            
-            return data
-        }
-        .decode(type: [Post].self, decoder: JSONDecoder())
-        .retry(3)
+    return URLSession.shared.dataTaskPublisher(for: uri)
+        .map(\data)
+        .decode(type: MovieResponse.self, decoder: JSONDecoder())
         .receive(on: DispatchQueue.main)
         .eraseToAnyPublisher()
 }
 
 var cancellables: Set<AnyCancellable> = []
 
-fetchPosts()
-    .sink { completion in
-        switch completion {
-            case .finished:
-                print("Update UI")
-            case .failure(let error):
-                print(error)
-        }
-    } receiveValue: { posts in
-        print(posts)
+Publishers.CombineLatest(fetchMovies("Batman"), fetchMovies("Spiderman"))
+    .sink { _ in
+        
+    } receiveValue: { value1, value2 in
+        print(value1.Search)
+        print(value2.Search)
     }.store(in: &cancellables)
 
 class ContentViewModel: ObservableObject {
