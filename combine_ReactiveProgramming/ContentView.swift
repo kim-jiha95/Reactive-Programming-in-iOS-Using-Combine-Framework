@@ -8,6 +8,9 @@
 import SwiftUI
 import Combine
 
+import SwiftUI
+import Combine
+
 struct ContentView: View {
     
     @State private var movies: [Movie] = []
@@ -15,8 +18,29 @@ struct ContentView: View {
     
     private let httpClient: HTTPClient
     
+    @State private var cancellables: Set<AnyCancellable> = []
+    private var searchSubject = CurrentValueSubject<String, Never>("")
+    
     init(httpClient: HTTPClient) {
         self.httpClient = httpClient
+    }
+    
+    private func setupSearchPublisher() {
+        searchSubject
+            .debounce(for: .seconds(0.5), scheduler: DispatchQueue.main)
+            .sink { searchText in
+                loadMovies(search: searchText)
+            }.store(in: &cancellables)
+    }
+    
+    private func loadMovies(search: String) {
+        httpClient.fetchMovies(search: search)
+            .sink { _  in
+                
+            } receiveValue: { movies in
+                self.movies = movies
+            }.store(in: &cancellables)
+
     }
     
     var body: some View {
@@ -31,7 +55,14 @@ struct ContentView: View {
                 }
                 Text(movie.title)
             }
-        }.searchable(text: $search)
+        }
+        .onAppear {
+            setupSearchPublisher()
+        }
+        .searchable(text: $search)
+        .onChange(of: search) {
+            searchSubject.send(search)
+        }
     }
 }
 
