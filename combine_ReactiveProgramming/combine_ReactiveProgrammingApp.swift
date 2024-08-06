@@ -12,7 +12,7 @@ import Combine
 struct combine_ReactiveProgrammingApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(httpClient: HTTPClient())
         }
     }
 }
